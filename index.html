@@ -21,21 +21,16 @@
 </head>
 <body ng-controller="MainController" class="text-gray-800 flex flex-col min-h-screen">
 
-    <!-- ENCABEZADO INSTITUCIONAL (Estilo Plataforma CUGDL) -->
+    <!-- ENCABEZADO INSTITUCIONAL -->
     <header class="bg-white border-b shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <!-- Logos y Título -->
             <div class="flex items-center gap-4">
-                <!-- Placeholder visual del Logo CUGDL -->
-                <div class="font-black text-2xl tracking-tighter">
-                    <span class="text-blue-900">CUG</span><span class="text-green-500">DL</span>
-                </div>
+                <img src="CUGDL.png" alt="Logo CUGDL" class="h-12 object-contain">
                 <div class="border-l-2 border-gray-300 pl-4">
                     <h1 class="text-lg font-bold text-gray-800 leading-tight">Consulta de Horario 2026B</h1>
                     <p class="text-sm text-gray-500">Centro Universitario de Guadalajara</p>
                 </div>
             </div>
-            <!-- Caja de Información -->
             <div class="bg-blue-50 border border-blue-100 rounded p-2 text-right">
                 <p class="text-xs font-bold text-blue-900 uppercase">Verifica tu registro</p>
                 <p class="text-[10px] text-gray-600">Compara con SIIAU-LEO</p>
@@ -49,8 +44,8 @@
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col items-center">
             <p class="text-sm text-gray-600 mb-4 text-center">Ingresa tu código de estudiante para consultar tu matriz de horario. Si detectas errores, contacta a tu coordinador(a).</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-lg">
-                <input type="text" ng-model="codigoBusqueda" placeholder="Código de Estudiante" class="w-full border border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" ng-keyup="$event.keyCode === 13 && buscarAlumno()">
-                <button ng-click="buscarAlumno()" ng-disabled="cargando" class="w-full sm:w-auto bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-8 rounded shadow transition-colors disabled:opacity-50">
+                <input type="text" inputmode="numeric" ng-model="codigoBusqueda" ng-change="limpiarCodigo()" placeholder="Código de Estudiante" class="w-full border border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" ng-keyup="$event.keyCode === 13 && buscarAlumno()">
+                <button ng-click="buscarAlumno()" ng-disabled="cargando || !configCargada" class="w-full sm:w-auto bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-8 rounded shadow transition-colors disabled:opacity-50">
                     <span ng-show="!cargando">Consultar</span>
                     <span ng-show="cargando">Buscando...</span>
                 </button>
@@ -74,7 +69,7 @@
                     </div>
                 </div>
 
-                <!-- MATRIZ DE HORARIO (Estilo CUGDL) -->
+                <!-- MATRIZ DE HORARIO -->
                 <table class="w-full text-center border-collapse bg-white">
                     <thead>
                         <tr class="bg-[#f8f9fa] text-gray-700 text-sm border-y border-gray-200">
@@ -86,13 +81,13 @@
                         <tr ng-repeat="bloque in bloquesHorarios" class="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 transition-colors">
                             <td class="p-3 border-r border-gray-200 font-bold text-gray-800 whitespace-nowrap">{{bloque.texto}}</td>
                             
-                            <td ng-repeat="dia in diasSemana" class="p-2 border-r last:border-r-0 border-gray-200 align-middle"
-                                ng-class="{'bg-[#fef4f4]': matrizHorario[bloque.texto][dia.clave]}">
+                            <td ng-repeat="dia in diasSemana" class="p-2 border-r last:border-r-0 border-gray-200 align-middle transition-colors"
+                                ng-class="matrizHorario[bloque.texto][dia.clave] ? matrizHorario[bloque.texto][dia.clave].color.bg : ''">
                                 
                                 <!-- Celda Ocupada (Materia) -->
                                 <div ng-if="matrizHorario[bloque.texto][dia.clave]" class="flex flex-col items-center justify-center h-full">
-                                    <span class="font-bold text-[#c53030] text-[13px] mb-1">CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}</span>
-                                    <span class="text-[#c53030] text-[10px] uppercase leading-tight px-1">{{matrizHorario[bloque.texto][dia.clave].materia}}</span>
+                                    <span class="font-bold text-[13px] mb-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}</span>
+                                    <span class="text-[10px] uppercase leading-tight px-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">{{matrizHorario[bloque.texto][dia.clave].materia}}</span>
                                 </div>
 
                                 <!-- Celda Libre -->
@@ -106,7 +101,7 @@
             </div>
         </div>
 
-        <!-- BOTONES DE EXPORTACIÓN (Ocultos en la imagen) -->
+        <!-- BOTONES DE EXPORTACIÓN -->
         <div class="mt-4 flex flex-col sm:flex-row gap-4 justify-center" ng-show="horarioGenerado">
             <button ng-click="exportarImagen()" class="bg-gray-100 border border-gray-300 hover:bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded shadow-sm transition-colors text-sm">
                 Guardar como Imagen
@@ -118,14 +113,11 @@
 
     </main>
 
-    <!-- PIE DE PÁGINA (Estilo Plataforma) -->
+    <!-- PIE DE PÁGINA -->
     <footer class="bg-[#f4f6f9] py-8 text-center mt-auto border-t border-gray-200">
-        <div class="flex justify-center items-center gap-4 mb-2">
-            <!-- Escudo UdeG Placeholder -->
-            <div class="w-8 h-10 border border-gray-400 bg-gray-200 text-[8px] flex items-center justify-center text-gray-500">UdeG</div>
-            <div class="font-black text-xl tracking-tighter">
-                <span class="text-blue-900">CUG</span><span class="text-green-500">DL</span>
-            </div>
+        <div class="flex justify-center items-center gap-6 mb-4">
+            <img src="UDG.png" alt="Logo UDG" class="h-16 object-contain">
+            <img src="CUGDL.png" alt="Logo CUGDL" class="h-12 object-contain">
         </div>
         <p class="text-sm text-gray-800">Universidad de Guadalajara | CUGDL</p>
         <p class="text-sm font-bold text-blue-900">Coordinación de Programas Académicos</p>
@@ -135,15 +127,13 @@
         const app = angular.module("HorarioApp", []);
 
         app.controller("MainController", function($scope, $http, $timeout) {
-            // =========================================================
-            // CONFIGURACIÓN (TUS URLs)
-            // =========================================================
-            const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxDEEGbEOV5OfVQ-ewomzcJB16n7f6usYKB8Rolz228_wG8SFgfthAoTApThb2I07MuMg/exec"; 
-            const URL_JSON_MATERIAS = "https://cugdl-apps.github.io/asignacion-grupos/BD_2026B.json"; 
-            // =========================================================
+            
+            let URL_APPS_SCRIPT = "";
+            let URL_JSON_MATERIAS = "";
 
             $scope.codigoBusqueda = "";
             $scope.cargando = false;
+            $scope.configCargada = false;
             $scope.mensajeError = "";
             $scope.horarioGenerado = false;
             $scope.catalogoMaterias = [];
@@ -157,18 +147,41 @@
                 { clave: 'S', nombre: 'Sábado (S)' }
             ];
 
-            // Bloques de horario estándar (basado en la imagen de referencia)
             const bloquesEstandar = [
                 "07:00 - 08:55", "09:00 - 10:55", "11:00 - 12:55", 
                 "13:00 - 14:55", "15:00 - 16:55", "17:00 - 18:55", "19:00 - 20:55"
             ];
 
-            // Cargar el JSON con rompe-caché
+            const paletaColores = [
+                { bg: 'bg-red-50', text: 'text-red-700' },
+                { bg: 'bg-blue-50', text: 'text-blue-700' },
+                { bg: 'bg-green-50', text: 'text-green-800' },
+                { bg: 'bg-purple-50', text: 'text-purple-700' },
+                { bg: 'bg-yellow-50', text: 'text-yellow-700' },
+                { bg: 'bg-pink-50', text: 'text-pink-700' },
+                { bg: 'bg-indigo-50', text: 'text-indigo-700' },
+                { bg: 'bg-teal-50', text: 'text-teal-700' },
+                { bg: 'bg-orange-50', text: 'text-orange-700' },
+                { bg: 'bg-cyan-50', text: 'text-cyan-700' }
+            ];
+
+            $scope.limpiarCodigo = function() {
+                if ($scope.codigoBusqueda) {
+                    $scope.codigoBusqueda = $scope.codigoBusqueda.replace(/[^0-9]/g, '');
+                }
+            };
+
             let cacheBuster = "?t=" + new Date().getTime();
-            $http.get(URL_JSON_MATERIAS + cacheBuster).then(function(res) {
-                $scope.catalogoMaterias = res.data.registros || res.data;
+            $http.get("datos.json" + cacheBuster).then(function(resDatos) {
+                URL_APPS_SCRIPT = resDatos.data.URL_APPS_SCRIPT;
+                URL_JSON_MATERIAS = resDatos.data.URL_JSON_MATERIAS;
+                return $http.get(URL_JSON_MATERIAS + cacheBuster);
+            }).then(function(resMaterias) {
+                $scope.catalogoMaterias = resMaterias.data.registros || resMaterias.data;
+                $scope.configCargada = true;
             }).catch(function(err) {
-                console.error("Error cargando BD_2026B.json", err);
+                console.error("Error en la inicialización:", err);
+                $scope.mensajeError = "No se pudo cargar la configuración. Asegúrate de que datos.json exista.";
             });
 
             $scope.horaAMinutos = function(horaStr) {
@@ -178,7 +191,8 @@
             };
 
             $scope.buscarAlumno = function() {
-                if(!$scope.codigoBusqueda) return;
+                if(!$scope.codigoBusqueda || !$scope.configCargada) return;
+                
                 if($scope.catalogoMaterias.length === 0) {
                     $scope.mensajeError = "La base de datos aún está cargando. Intenta en unos segundos.";
                     return;
@@ -211,12 +225,19 @@
                 }
 
                 let crnsEstudiante = crnsEstudianteRaw.map(c => String(c).trim());
+                
+                let coloresPorCrn = {};
+                crnsEstudiante.forEach((crn, index) => {
+                    if (!coloresPorCrn[crn]) {
+                        coloresPorCrn[crn] = paletaColores[index % paletaColores.length];
+                    }
+                });
+
                 let sesionesEncontradas = $scope.catalogoMaterias.filter(g => {
                     let crnJson = String(g.crn || g.CRN || "").trim();
                     return crnsEstudiante.includes(crnJson);
                 });
 
-                // Preparar los bloques de horario (los estándar + cualquier horario atípico que tenga el alumno)
                 let bloquesSet = new Set(bloquesEstandar);
                 let listaClases = [];
 
@@ -238,9 +259,11 @@
                     let horarioStr = `${hInicio.substring(0,5)} - ${hFin.substring(0,5)}`;
                     bloquesSet.add(horarioStr);
 
+                    let crnActual = String(sesion.crn || sesion.CRN).trim();
                     let claseObj = {
-                        crn: sesion.crn || sesion.CRN,
-                        materia: sesion.materia || sesion.MATERIA
+                        crn: crnActual,
+                        materia: sesion.materia || sesion.MATERIA,
+                        color: coloresPorCrn[crnActual] || paletaColores[0] 
                     };
 
                     diasActivos.forEach(dia => {
@@ -248,18 +271,15 @@
                     });
                 });
 
-                // Ordenar cronológicamente las filas (bloques)
                 $scope.bloquesHorarios = Array.from(bloquesSet).map(h => {
                     return { texto: h, minutos: $scope.horaAMinutos(h.split(' - ')[0]) };
                 }).sort((a, b) => a.minutos - b.minutos);
 
-                // Inicializar la matriz [Horario][Día]
                 $scope.matrizHorario = {};
                 $scope.bloquesHorarios.forEach(b => {
                     $scope.matrizHorario[b.texto] = {};
                 });
 
-                // Llenar la matriz
                 listaClases.forEach(item => {
                     $scope.matrizHorario[item.horario][item.dia] = item.clase;
                 });
@@ -267,12 +287,10 @@
                 $scope.horarioGenerado = true;
             }
 
-            // Exportar Imagen (Adaptado para capturar la matriz completa)
             $scope.exportarImagen = function() {
                 const node = document.getElementById('zona-exportacion');
-                // Guardar estilos originales
                 const originalOverflow = node.parentElement.style.overflow;
-                node.parentElement.style.overflow = 'visible'; // Evita recortes en móvil
+                node.parentElement.style.overflow = 'visible'; 
                 
                 $timeout(function() {
                     html2canvas(node, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
@@ -280,12 +298,11 @@
                         a.href = canvas.toDataURL("image/jpeg", 0.9);
                         a.download = `Horario_${$scope.infoAlumno.CODIGO}_2026B.jpg`;
                         a.click();
-                        node.parentElement.style.overflow = originalOverflow; // Restaurar estilos
+                        node.parentElement.style.overflow = originalOverflow;
                     });
                 }, 100);
             };
 
-            // Exportar a Excel (Formato Matriz)
             $scope.exportarExcel = function() {
                 let matrizExport = [];
                 

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consulta de Horario 2026B | CUGDL</title>
+    <link rel="shortcut icon" href="cugdl.jpg"> 
     
-    <!-- Librerías -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -13,9 +13,7 @@
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
-        /* Forzar que la exportación de imagen mantenga el ancho de la tabla y fondo blanco */
         #zona-exportacion { background-color: #ffffff; width: 100%; min-width: 800px; padding: 20px; } 
-        /* Scrollbar suave para la tabla en móviles */
         .tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
@@ -42,12 +40,16 @@
         
         <!-- BÚSQUEDA -->
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col items-center">
-            <p class="text-sm text-gray-600 mb-4 text-center">Ingresa tu código de estudiante para consultar tu matriz de horario. Si detectas errores, contacta a tu coordinador(a).</p>
+            <p class="text-sm text-gray-600 mb-4 text-center">Ingresa tu código de estudiante para consultar tu horario. Si detectas errores, contacta a tu coordinador(a).</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-lg">
                 <input type="text" inputmode="numeric" ng-model="codigoBusqueda" ng-change="limpiarCodigo()" placeholder="Código de Estudiante" class="w-full border border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" ng-keyup="$event.keyCode === 13 && buscarAlumno()">
                 <button ng-click="buscarAlumno()" ng-disabled="cargando || !configCargada" class="w-full sm:w-auto bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-8 rounded shadow transition-colors disabled:opacity-50">
                     <span ng-show="!cargando">Consultar</span>
                     <span ng-show="cargando">Buscando...</span>
+                </button>
+                <!-- Botón de Limpiar/Cancelar -->
+                <button ng-click="limpiarBusqueda()" ng-show="codigoBusqueda.length > 0 || horarioGenerado" class="w-full sm:w-auto bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded shadow transition-colors">
+                    Limpiar
                 </button>
             </div>
             <p class="text-red-600 text-sm font-semibold mt-3" ng-show="mensajeError">{{mensajeError}}</p>
@@ -69,7 +71,7 @@
                     </div>
                 </div>
 
-                <!-- MATRIZ DE HORARIO -->
+                <!-- MATRIZ DE HORARIO CON COLORES DINÁMICOS -->
                 <table class="w-full text-center border-collapse bg-white">
                     <thead>
                         <tr class="bg-[#f8f9fa] text-gray-700 text-sm border-y border-gray-200">
@@ -81,6 +83,7 @@
                         <tr ng-repeat="bloque in bloquesHorarios" class="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 transition-colors">
                             <td class="p-3 border-r border-gray-200 font-bold text-gray-800 whitespace-nowrap">{{bloque.texto}}</td>
                             
+                            <!-- Celda dinámica. Adquiere el color de fondo asignado a la materia -->
                             <td ng-repeat="dia in diasSemana" class="p-2 border-r last:border-r-0 border-gray-200 align-middle transition-colors"
                                 ng-class="matrizHorario[bloque.texto][dia.clave] ? matrizHorario[bloque.texto][dia.clave].color.bg : ''">
                                 
@@ -169,6 +172,15 @@
                 if ($scope.codigoBusqueda) {
                     $scope.codigoBusqueda = $scope.codigoBusqueda.replace(/[^0-9]/g, '');
                 }
+            };
+
+            $scope.limpiarBusqueda = function() {
+                $scope.codigoBusqueda = "";
+                $scope.mensajeError = "";
+                $scope.horarioGenerado = false;
+                $scope.infoAlumno = null;
+                $scope.matrizHorario = {};
+                $scope.bloquesHorarios = [];
             };
 
             let cacheBuster = "?t=" + new Date().getTime();

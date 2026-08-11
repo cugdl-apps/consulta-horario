@@ -43,7 +43,9 @@
         
         <!-- BÚSQUEDA -->
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col items-center">
-            <p class="text-sm text-gray-600 mb-4 text-center">Ingresa tu código de estudiante para consultar tu horario. Si detectas errores, contacta a tu coordinador(a).</p>
+            
+            <p class="text-sm text-gray-600 mb-4 text-center">Ingresa tu código de estudiante para consultar tu horario.</p>
+            
             <div class="flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-lg">
                 <input type="text" inputmode="numeric" ng-model="codigoBusqueda" ng-change="limpiarCodigo()" placeholder="Código de Estudiante" class="w-full border border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" ng-keyup="$event.keyCode === 13 && buscarAlumno()">
                 <button ng-click="buscarAlumno()" ng-disabled="cargando || !configCargada" class="w-full sm:w-auto bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-8 rounded shadow transition-colors disabled:opacity-50">
@@ -55,7 +57,17 @@
                     Limpiar
                 </button>
             </div>
+            
             <p class="text-red-600 text-sm font-semibold mt-3" ng-show="mensajeError">{{mensajeError}}</p>
+
+            <!-- AVISO IMPORTANTE PERMANENTE -->
+            <div class="w-full max-w-3xl mt-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded text-sm text-gray-800 text-left shadow-sm">
+                <p class="mb-2">Es muy importante que revises cuidadosamente que las materias que aparecen en <strong>LEO coincidan con las que se muestran en este horario</strong>, tanto en nombre de la materia como en día y horario.</p>
+                <p class="mb-2">Además, verifica que todas tus materias estén programadas en un <strong>mismo bloque Matutino, o Vespertino</strong>.</p>
+                <p class="mb-2 text-red-700"><strong>No deben aparecer materias en bloques opuestos</strong> (por ejemplo, algunas materias por la mañana y otras por la tarde).</p>
+                <p>Si identificas algún error o inconsistencia en el nombre de la materia, día u horario, <strong>acude a tu Coordinación de Carrera</strong> para solicitar la revisión correspondiente.</p>
+            </div>
+            
         </div>
 
         <!-- ZONA DE RESULTADOS Y EXPORTACIÓN -->

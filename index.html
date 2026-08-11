@@ -93,13 +93,13 @@
                                 <!-- Celda Ocupada (Materia) -->
                                 <div ng-if="matrizHorario[bloque.texto][dia.clave]" class="flex flex-col items-center justify-center h-full">
                                     <span class="font-black text-[14px] mb-0.5" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
-                                        {{matrizHorario[bloque.texto][dia.clave].aula}}
+                                        {{matrizHorario[bloque.texto][dia.clave].materia}}
                                     </span>
                                     <span class="font-bold text-[11px] mb-0.5" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
-                                        CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}
+                                        {{matrizHorario[bloque.texto][dia.clave].aula}}
                                     </span>
                                     <span class="text-[9px] uppercase leading-tight px-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
-                                        {{matrizHorario[bloque.texto][dia.clave].materia}}
+                                        CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}
                                     </span>
                                 </div>
 

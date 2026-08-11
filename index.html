@@ -6,6 +6,7 @@
     <title>Consulta de Horario 2026B | CUGDL</title>
     <link rel="shortcut icon" href="cugdl.jpg"> 
     
+    <!-- Librerías -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -13,7 +14,9 @@
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
+        /* Forzar que la exportación de imagen mantenga el ancho de la tabla y fondo blanco */
         #zona-exportacion { background-color: #ffffff; width: 100%; min-width: 800px; padding: 20px; } 
+        /* Scrollbar suave para la tabla en móviles */
         .tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
@@ -89,8 +92,15 @@
                                 
                                 <!-- Celda Ocupada (Materia) -->
                                 <div ng-if="matrizHorario[bloque.texto][dia.clave]" class="flex flex-col items-center justify-center h-full">
-                                    <span class="font-bold text-[13px] mb-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}</span>
-                                    <span class="text-[10px] uppercase leading-tight px-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">{{matrizHorario[bloque.texto][dia.clave].materia}}</span>
+                                    <span class="font-black text-[14px] mb-0.5" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
+                                        {{matrizHorario[bloque.texto][dia.clave].aula}}
+                                    </span>
+                                    <span class="font-bold text-[11px] mb-0.5" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
+                                        CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}
+                                    </span>
+                                    <span class="text-[9px] uppercase leading-tight px-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
+                                        {{matrizHorario[bloque.texto][dia.clave].materia}}
+                                    </span>
                                 </div>
 
                                 <!-- Celda Libre -->
@@ -129,17 +139,21 @@
     <script>
         const app = angular.module("HorarioApp", []);
 
-        app.controller("MainController", function($scope, $http, $timeout) {
+        // Inyectamos $q para manejar promesas múltiples de manera eficiente
+        app.controller("MainController", function($scope, $http, $timeout, $q) {
             
             let URL_APPS_SCRIPT = "";
             let URL_JSON_MATERIAS = "";
+            let URL_JSON_AULAS = "";
 
             $scope.codigoBusqueda = "";
             $scope.cargando = false;
             $scope.configCargada = false;
             $scope.mensajeError = "";
             $scope.horarioGenerado = false;
+            
             $scope.catalogoMaterias = [];
+            $scope.catalogoAulas = [];
             
             $scope.diasSemana = [
                 { clave: 'L', nombre: 'Lunes (L)' },
@@ -184,16 +198,24 @@
             };
 
             let cacheBuster = "?t=" + new Date().getTime();
+            
+            // Cargar datos.json y luego disparar ambas peticiones a GitHub
             $http.get("datos.json" + cacheBuster).then(function(resDatos) {
                 URL_APPS_SCRIPT = resDatos.data.URL_APPS_SCRIPT;
                 URL_JSON_MATERIAS = resDatos.data.URL_JSON_MATERIAS;
-                return $http.get(URL_JSON_MATERIAS + cacheBuster);
-            }).then(function(resMaterias) {
-                $scope.catalogoMaterias = resMaterias.data.registros || resMaterias.data;
+                URL_JSON_AULAS = resDatos.data.URL_JSON_AULAS;
+                
+                return $q.all([
+                    $http.get(URL_JSON_MATERIAS + cacheBuster),
+                    $http.get(URL_JSON_AULAS + cacheBuster)
+                ]);
+            }).then(function(respuestas) {
+                $scope.catalogoMaterias = respuestas[0].data.registros || respuestas[0].data;
+                $scope.catalogoAulas = respuestas[1].data.registros || respuestas[1].data;
                 $scope.configCargada = true;
             }).catch(function(err) {
                 console.error("Error en la inicialización:", err);
-                $scope.mensajeError = "No se pudo cargar la configuración. Asegúrate de que datos.json exista.";
+                $scope.mensajeError = "No se pudo cargar la configuración o las bases de datos. Asegúrate de que datos.json exista.";
             });
 
             $scope.horaAMinutos = function(horaStr) {
@@ -205,8 +227,8 @@
             $scope.buscarAlumno = function() {
                 if(!$scope.codigoBusqueda || !$scope.configCargada) return;
                 
-                if($scope.catalogoMaterias.length === 0) {
-                    $scope.mensajeError = "La base de datos aún está cargando. Intenta en unos segundos.";
+                if($scope.catalogoMaterias.length === 0 || $scope.catalogoAulas.length === 0) {
+                    $scope.mensajeError = "Las bases de datos aún están cargando. Intenta en unos segundos.";
                     return;
                 }
 
@@ -272,13 +294,34 @@
                     bloquesSet.add(horarioStr);
 
                     let crnActual = String(sesion.crn || sesion.CRN).trim();
-                    let claseObj = {
-                        crn: crnActual,
-                        materia: sesion.materia || sesion.MATERIA,
-                        color: coloresPorCrn[crnActual] || paletaColores[0] 
-                    };
 
+                    // Mapeo dinámico del aula según el día de impartición
                     diasActivos.forEach(dia => {
+                        let aulaAsignada = $scope.catalogoAulas.find(a => 
+                            String(a.crn).trim() === crnActual && 
+                            String(a['días_impartición']).toUpperCase().trim() === dia
+                        );
+
+                        let nombreAulaFinal = "Por asignar";
+                        
+                        if(aulaAsignada) {
+                            let tipoEspacio = String(aulaAsignada['tipo_de_espacio'] || "").toUpperCase().trim();
+                            let espacioFisico = String(aulaAsignada['aula_/_espacio_asignado'] || "").toUpperCase().trim();
+                            
+                            if (tipoEspacio === 'NO APLICA' || espacioFisico === 'NO APLICA') {
+                                nombreAulaFinal = "Virtual";
+                            } else if (espacioFisico !== "") {
+                                nombreAulaFinal = aulaAsignada['aula_/_espacio_asignado'];
+                            }
+                        }
+
+                        let claseObj = {
+                            crn: crnActual,
+                            materia: sesion.materia || sesion.MATERIA,
+                            color: coloresPorCrn[crnActual] || paletaColores[0],
+                            aula: nombreAulaFinal
+                        };
+
                         listaClases.push({ dia: dia, horario: horarioStr, clase: claseObj });
                     });
                 });
@@ -322,7 +365,7 @@
                     let filaExport = { "Horario": bloque.texto };
                     $scope.diasSemana.forEach(dia => {
                         let clase = $scope.matrizHorario[bloque.texto][dia.clave];
-                        filaExport[dia.nombre] = clase ? `${clase.crn} - ${clase.materia}` : "Libre";
+                        filaExport[dia.nombre] = clase ? `${clase.aula} | CRN: ${clase.crn} | ${clase.materia}` : "Libre";
                     });
                     matrizExport.push(filaExport);
                 });

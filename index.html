@@ -489,7 +489,7 @@
 
                     let ws = XLSX.utils.aoa_to_sheet(datosAExportar);
                     let wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Auditoría CRNs");
+                    XLSX.utils.book_append_sheet(wb, ws, "Hoja 1");
                     XLSX.writeFile(wb, "Reporte_Coordinacion_2026B.xlsx");
 
                 }).catch(function(err) {

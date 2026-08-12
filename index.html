@@ -9,14 +9,12 @@
     <!-- Librerías -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
-        /* Forzar que la exportación de imagen mantenga el ancho de la tabla y fondo blanco */
         #zona-exportacion { background-color: #ffffff; width: 100%; min-width: 800px; padding: 20px; } 
-        /* Scrollbar suave para la tabla en móviles */
         .tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
@@ -32,10 +30,12 @@
                     <p class="text-sm text-gray-500">Centro Universitario de Guadalajara</p>
                 </div>
             </div>
-            <div class="bg-blue-50 border border-blue-100 rounded p-2 text-right">
-                <p class="text-xs font-bold text-blue-900 uppercase">Verifica tu registro</p>
-                <p class="text-[10px] text-gray-600">Compara con SIIAU-LEO</p>
-            </div>
+            
+            <!-- Botón de Reporte de Coordinación (Reemplaza el texto anterior) -->
+            <button ng-click="descargarReporte()" class="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded shadow transition-colors flex items-center justify-center gap-2 text-sm">
+                <span ng-show="!descargandoReporte">Exclusivo Coordinación</span>
+                <span ng-show="descargandoReporte">Procesando reporte...</span>
+            </button>
         </div>
     </header>
 
@@ -46,13 +46,14 @@
             
             <p class="text-sm text-gray-600 mb-4 text-center">Ingresa tu código de estudiante para consultar tu horario.</p>
             
-            <div class="flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-lg">
-                <input type="text" inputmode="numeric" ng-model="codigoBusqueda" ng-change="limpiarCodigo()" placeholder="Código de Estudiante" class="w-full border border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" ng-keyup="$event.keyCode === 13 && buscarAlumno()">
+            <div class="flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-2xl">
+                <input type="text" inputmode="numeric" ng-model="codigoBusqueda" ng-change="limpiarCodigo()" placeholder="Código de Estudiante" class="w-full sm:w-64 border border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" ng-keyup="$event.keyCode === 13 && buscarAlumno()">
+                
                 <button ng-click="buscarAlumno()" ng-disabled="cargando || !configCargada" class="w-full sm:w-auto bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-8 rounded shadow transition-colors disabled:opacity-50">
                     <span ng-show="!cargando">Consultar</span>
                     <span ng-show="cargando">Buscando...</span>
                 </button>
-                <!-- Botón de Limpiar/Cancelar -->
+                
                 <button ng-click="limpiarBusqueda()" ng-show="codigoBusqueda.length > 0 || horarioGenerado" class="w-full sm:w-auto bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded shadow transition-colors">
                     Limpiar
                 </button>
@@ -72,6 +73,15 @@
 
         <!-- ZONA DE RESULTADOS Y EXPORTACIÓN -->
         <div class="tabla-scroll pb-6" ng-show="horarioGenerado">
+            
+            <!-- ALERTAS DINÁMICAS DE CRUCE -->
+            <div ng-if="alertasCruces.length > 0" class="max-w-4xl mx-auto mb-4">
+                <div ng-repeat="alerta in alertasCruces" class="bg-red-100 border-l-4 border-red-600 text-red-900 p-3 rounded shadow-sm mb-2 font-semibold text-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                    {{ alerta }}
+                </div>
+            </div>
+
             <div id="zona-exportacion" class="rounded border border-gray-200 shadow-sm mx-auto">
                 
                 <!-- Encabezado del Alumno en la Tabla -->
@@ -98,25 +108,27 @@
                         <tr ng-repeat="bloque in bloquesHorarios" class="border-b border-gray-200 last:border-b-0 text-sm hover:bg-gray-50 transition-colors">
                             <td class="p-3 border-r border-gray-200 font-bold text-gray-800 whitespace-nowrap">{{bloque.texto}}</td>
                             
-                            <!-- Celda dinámica. Adquiere el color de fondo asignado a la materia -->
+                            <!-- Celda dinámica. Soporta múltiples clases si se cruzan -->
                             <td ng-repeat="dia in diasSemana" class="p-2 border-r last:border-r-0 border-gray-200 align-middle transition-colors"
-                                ng-class="matrizHorario[bloque.texto][dia.clave] ? matrizHorario[bloque.texto][dia.clave].color.bg : ''">
+                                ng-class="matrizHorario[bloque.texto][dia.clave].length > 0 ? matrizHorario[bloque.texto][dia.clave][0].color.bg : ''">
                                 
-                                <!-- Celda Ocupada (Materia) -->
-                                <div ng-if="matrizHorario[bloque.texto][dia.clave]" class="flex flex-col items-center justify-center h-full">
-                                    <span class="font-black text-[14px] mb-0.5" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
-                                        {{matrizHorario[bloque.texto][dia.clave].materia}}
-                                    </span>
-                                    <span class="font-bold text-[11px] mb-0.5" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
-                                        {{matrizHorario[bloque.texto][dia.clave].aula}}
-                                    </span>
-                                    <span class="text-[9px] uppercase leading-tight px-1" ng-class="matrizHorario[bloque.texto][dia.clave].color.text">
-                                        CRN: {{matrizHorario[bloque.texto][dia.clave].crn}}
-                                    </span>
+                                <!-- Celda Ocupada (Materias iteradas - Nuevo acomodo) -->
+                                <div ng-if="matrizHorario[bloque.texto][dia.clave].length > 0" class="flex flex-col h-full gap-2 justify-center">
+                                    <div ng-repeat="claseAsig in matrizHorario[bloque.texto][dia.clave]" class="flex flex-col items-center border-b border-gray-300 last:border-0 pb-1 last:pb-0">
+                                        <span class="font-black text-[14px] mb-0.5" ng-class="claseAsig.color.text">
+                                            {{claseAsig.materia}}
+                                        </span>
+                                        <span class="font-bold text-[11px] mb-0.5" ng-class="claseAsig.color.text">
+                                            {{claseAsig.aula}}
+                                        </span>
+                                        <span class="text-[9px] uppercase leading-tight px-1 text-center" ng-class="claseAsig.color.text">
+                                            CRN: {{claseAsig.crn}}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <!-- Celda Libre -->
-                                <div ng-if="!matrizHorario[bloque.texto][dia.clave]" class="text-[#38a169] italic text-[13px]">
+                                <div ng-if="!matrizHorario[bloque.texto][dia.clave] || matrizHorario[bloque.texto][dia.clave].length === 0" class="text-[#38a169] italic text-[13px]">
                                     Libre
                                 </div>
                             </td>
@@ -126,7 +138,7 @@
             </div>
         </div>
 
-        <!-- BOTONES DE EXPORTACIÓN -->
+        <!-- BOTONES DE EXPORTACIÓN PÚBLICA -->
         <div class="mt-4 flex flex-col sm:flex-row gap-4 justify-center" ng-show="horarioGenerado">
             <button ng-click="exportarImagen()" class="bg-gray-100 border border-gray-300 hover:bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded shadow-sm transition-colors text-sm">
                 Guardar como Imagen
@@ -151,7 +163,6 @@
     <script>
         const app = angular.module("HorarioApp", []);
 
-        // Inyectamos $q para manejar promesas múltiples de manera eficiente
         app.controller("MainController", function($scope, $http, $timeout, $q) {
             
             let URL_APPS_SCRIPT = "";
@@ -160,12 +171,14 @@
 
             $scope.codigoBusqueda = "";
             $scope.cargando = false;
+            $scope.descargandoReporte = false;
             $scope.configCargada = false;
             $scope.mensajeError = "";
             $scope.horarioGenerado = false;
             
             $scope.catalogoMaterias = [];
             $scope.catalogoAulas = [];
+            $scope.alertasCruces = [];
             
             $scope.diasSemana = [
                 { clave: 'L', nombre: 'Lunes (L)' },
@@ -207,11 +220,11 @@
                 $scope.infoAlumno = null;
                 $scope.matrizHorario = {};
                 $scope.bloquesHorarios = [];
+                $scope.alertasCruces = [];
             };
 
             let cacheBuster = "?t=" + new Date().getTime();
             
-            // Cargar datos.json y luego disparar ambas peticiones a GitHub
             $http.get("datos.json" + cacheBuster).then(function(resDatos) {
                 URL_APPS_SCRIPT = resDatos.data.URL_APPS_SCRIPT;
                 URL_JSON_MATERIAS = resDatos.data.URL_JSON_MATERIAS;
@@ -236,17 +249,16 @@
                 return (parseInt(partes[0]) * 60) + parseInt(partes[1] || 0);
             };
 
+            // ==========================================
+            // LÓGICA DE BÚSQUEDA Y RENDERIZADO VISUAL
+            // ==========================================
             $scope.buscarAlumno = function() {
                 if(!$scope.codigoBusqueda || !$scope.configCargada) return;
                 
-                if($scope.catalogoMaterias.length === 0 || $scope.catalogoAulas.length === 0) {
-                    $scope.mensajeError = "Las bases de datos aún están cargando. Intenta en unos segundos.";
-                    return;
-                }
-
                 $scope.cargando = true;
                 $scope.mensajeError = "";
                 $scope.horarioGenerado = false;
+                $scope.alertasCruces = [];
 
                 $http.get(URL_APPS_SCRIPT + "?codigo=" + $scope.codigoBusqueda.trim())
                 .then(function(res) {
@@ -307,7 +319,6 @@
 
                     let crnActual = String(sesion.crn || sesion.CRN).trim();
 
-                    // Mapeo dinámico del aula según el día de impartición
                     diasActivos.forEach(dia => {
                         let aulaAsignada = $scope.catalogoAulas.find(a => 
                             String(a.crn).trim() === crnActual && 
@@ -315,7 +326,6 @@
                         );
 
                         let nombreAulaFinal = "Por asignar";
-                        
                         if(aulaAsignada) {
                             let tipoEspacio = String(aulaAsignada['tipo_de_espacio'] || "").toUpperCase().trim();
                             let espacioFisico = String(aulaAsignada['aula_/_espacio_asignado'] || "").toUpperCase().trim();
@@ -334,9 +344,30 @@
                             aula: nombreAulaFinal
                         };
 
-                        listaClases.push({ dia: dia, horario: horarioStr, clase: claseObj });
+                        listaClases.push({ 
+                            dia: dia, 
+                            horario: horarioStr, 
+                            inicio: $scope.horaAMinutos(hInicio),
+                            fin: $scope.horaAMinutos(hFin),
+                            clase: claseObj 
+                        });
                     });
                 });
+
+                // Detección matemática de Cruces en UI
+                for(let i=0; i<listaClases.length; i++) {
+                    for(let j=i+1; j<listaClases.length; j++) {
+                        let a = listaClases[i];
+                        let b = listaClases[j];
+                        
+                        if(a.dia === b.dia && a.clase.crn !== b.clase.crn) {
+                            if(a.inicio < b.fin && a.fin > b.inicio) {
+                                let msg = `Atención las materias ${a.clase.materia} - ${a.clase.crn} y ${b.clase.materia} - ${b.clase.crn} se cruzan el día ${a.dia} (Bloque: ${a.horario})`;
+                                if(!$scope.alertasCruces.includes(msg)) $scope.alertasCruces.push(msg);
+                            }
+                        }
+                    }
+                }
 
                 $scope.bloquesHorarios = Array.from(bloquesSet).map(h => {
                     return { texto: h, minutos: $scope.horaAMinutos(h.split(' - ')[0]) };
@@ -347,13 +378,129 @@
                     $scope.matrizHorario[b.texto] = {};
                 });
 
+                // Agrupamos en Arrays para soportar cruces en la misma celda
                 listaClases.forEach(item => {
-                    $scope.matrizHorario[item.horario][item.dia] = item.clase;
+                    if(!$scope.matrizHorario[item.horario][item.dia]) {
+                        $scope.matrizHorario[item.horario][item.dia] = [];
+                    }
+                    $scope.matrizHorario[item.horario][item.dia].push(item.clase);
                 });
 
                 $scope.horarioGenerado = true;
             }
 
+            // ==========================================
+            // REPORTE EXCEL DE COORDINACIÓN (Padrón Completo)
+            // ==========================================
+            $scope.descargarReporte = function() {
+                let pwd = prompt("Ingresa la contraseña de la Coordinación para generar el reporte.");
+                if(!pwd) return;
+
+                $scope.descargandoReporte = true;
+
+                $http.get(URL_APPS_SCRIPT + "?accion=reporte&pass=" + encodeURIComponent(pwd))
+                .then(function(res) {
+                    $scope.descargandoReporte = false;
+                    
+                    if(res.data.status === 'error') {
+                        alert("Acceso denegado: " + res.data.message);
+                        return;
+                    }
+
+                    let padronAlumnos = res.data.data;
+                    let datosAExportar = [];
+                    
+                    let headers = ["CODIGO", "CORREO", "CRN1", "CRN2", "CRN3", "CRN4", "CRN5", "CRN6", "CRN7", "CRN8", "CRN9", "PE"];
+                    datosAExportar.push(headers.map(h => ({ v: h, s: { font: { bold: true }, fill: { fgColor: { rgb: "E2E8F0" } } } })));
+
+                    padronAlumnos.forEach(estudiante => {
+                        let row = [];
+                        row.push({ v: estudiante["CODIGO"] || "" });
+                        row.push({ v: estudiante["CORREO"] || "" });
+                        
+                        let crnsEstudiante = [];
+                        for(let i=1; i<=9; i++) {
+                            let c = String(estudiante["CRN"+i] || "").trim();
+                            if(c && c !== "-") crnsEstudiante.push(c);
+                        }
+
+                        let crnsCruzados = new Set();
+                        let crnsNoEncontrados = new Set();
+                        
+                        let sesionesData = $scope.catalogoMaterias.filter(g => crnsEstudiante.includes(String(g.crn || g.CRN).trim()));
+                        let foundCrns = sesionesData.map(s => String(s.crn || s.CRN).trim());
+                        
+                        crnsEstudiante.forEach(c => { 
+                            if(!foundCrns.includes(c)) crnsNoEncontrados.add(c); 
+                        });
+
+                        let lineaTiempoClases = [];
+                        sesionesData.forEach(s => {
+                            let dStr = "";
+                            if (s.l && String(s.l).trim() !== "") dStr += "L,";
+                            if (s.m && String(s.m).trim() !== "") dStr += "M,";
+                            if (s.i && String(s.i).trim() !== "") dStr += "I,";
+                            if (s.j && String(s.j).trim() !== "") dStr += "J,";
+                            if (s.v && String(s.v).trim() !== "") dStr += "V,";
+                            if (s.s && String(s.s).trim() !== "") dStr += "S,";
+                            
+                            let dias = dStr.split(',').filter(d=>d);
+                            let hInicio = String(s.hora_inicio || s.HORA_INICIO || "");
+                            let hFin = String(s.hora_fin || s.HORA_FIN || "");
+                            
+                            if(hInicio && hInicio !== "00:00:00") {
+                                let mIn = $scope.horaAMinutos(hInicio);
+                                let mFi = $scope.horaAMinutos(hFin);
+                                let cStr = String(s.crn || s.CRN).trim();
+                                dias.forEach(d => lineaTiempoClases.push({ crn: cStr, dia: d, inicio: mIn, fin: mFi }));
+                            }
+                        });
+
+                        for(let i=0; i<lineaTiempoClases.length; i++) {
+                            for(let j=i+1; j<lineaTiempoClases.length; j++) {
+                                let a = lineaTiempoClases[i];
+                                let b = lineaTiempoClases[j];
+                                if(a.dia === b.dia && a.crn !== b.crn) {
+                                    if(a.inicio < b.fin && a.fin > b.inicio) {
+                                        crnsCruzados.add(a.crn);
+                                        crnsCruzados.add(b.crn);
+                                    }
+                                }
+                            }
+                        }
+
+                        for(let i=1; i<=9; i++) {
+                            let crnVal = String(estudiante["CRN"+i] || "").trim();
+                            let cellObj = { v: crnVal };
+                            
+                            if(crnVal && crnVal !== "-") {
+                                if(crnsNoEncontrados.has(crnVal)) {
+                                    cellObj.s = { fill: { fgColor: { rgb: "FF0000" } }, font: { color: { rgb: "FFFFFF" }, bold: true } };
+                                } else if (crnsCruzados.has(crnVal)) {
+                                    cellObj.s = { fill: { fgColor: { rgb: "FFFF00" } }, font: { bold: true } };
+                                }
+                            }
+                            row.push(cellObj);
+                        }
+                        
+                        row.push({ v: estudiante["PE"] || "" });
+                        datosAExportar.push(row);
+                    });
+
+                    let ws = XLSX.utils.aoa_to_sheet(datosAExportar);
+                    let wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Auditoría CRNs");
+                    XLSX.writeFile(wb, "Reporte_Coordinacion_2026B.xlsx");
+
+                }).catch(function(err) {
+                    $scope.descargandoReporte = false;
+                    alert("Error en la conexión con el servidor.");
+                });
+            };
+
+            // ==========================================
+            // EXPORTACIONES PÚBLICAS (Alumnos)
+            // ==========================================
             $scope.exportarImagen = function() {
                 const node = document.getElementById('zona-exportacion');
                 const originalOverflow = node.parentElement.style.overflow;
@@ -372,12 +519,15 @@
 
             $scope.exportarExcel = function() {
                 let matrizExport = [];
-                
                 $scope.bloquesHorarios.forEach(bloque => {
                     let filaExport = { "Horario": bloque.texto };
                     $scope.diasSemana.forEach(dia => {
-                        let clase = $scope.matrizHorario[bloque.texto][dia.clave];
-                        filaExport[dia.nombre] = clase ? `${clase.aula} | CRN: ${clase.crn} | ${clase.materia}` : "Libre";
+                        let celdasArray = $scope.matrizHorario[bloque.texto][dia.clave] || [];
+                        if(celdasArray.length > 0) {
+                            filaExport[dia.nombre] = celdasArray.map(c => `${c.aula} | CRN: ${c.crn} | ${c.materia}`).join(" --- CRUZADA CON --- ");
+                        } else {
+                            filaExport[dia.nombre] = "Libre";
+                        }
                     });
                     matrizExport.push(filaExport);
                 });

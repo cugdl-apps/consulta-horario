@@ -410,7 +410,8 @@
                     let padronAlumnos = res.data.data;
                     let datosAExportar = [];
                     
-                    let headers = ["CODIGO", "CORREO", "CRN1", "CRN2", "CRN3", "CRN4", "CRN5", "CRN6", "CRN7", "CRN8", "CRN9", "PE"];
+                    // Antes: let headers = ["CODIGO", "CORREO", "CRN1", "CRN2", "CRN3", "CRN4", "CRN5", "CRN6", "CRN7", "CRN8", "CRN9", "PE"];
+                    let headers = ["CODIGO", "CORREO", "CRN1", "CRN2", "CRN3", "CRN4", "CRN5", "CRN6", "CRN7", "CRN8", "CRN9", "CRN10", "PE"];
                     datosAExportar.push(headers.map(h => ({ v: h, s: { font: { bold: true }, fill: { fgColor: { rgb: "E2E8F0" } } } })));
 
                     padronAlumnos.forEach(estudiante => {
@@ -419,7 +420,7 @@
                         row.push({ v: estudiante["CORREO"] || "" });
                         
                         let crnsEstudiante = [];
-                        for(let i=1; i<=9; i++) {
+                        for(let i=1; i<=10; i++) {
                             let c = String(estudiante["CRN"+i] || "").trim();
                             if(c && c !== "-") crnsEstudiante.push(c);
                         }
@@ -469,7 +470,7 @@
                             }
                         }
 
-                        for(let i=1; i<=9; i++) {
+                        for(let i=1; i<=10; i++) {
                             let crnVal = String(estudiante["CRN"+i] || "").trim();
                             let cellObj = { v: crnVal };
                             

@@ -223,16 +223,20 @@
                 $scope.alertasCruces = [];
             };
 
-            let cacheBuster = "?t=" + new Date().getTime();
+            const BOVEDA_URL = "https://script.google.com/macros/s/AKfycbwuZ73ez3LH38Nk8HNTemMUoghbptmwfLOY5sozl-oxfOFBKY_Q6mp-ari4cwv4lbcabw/exec";
+
+            let cacheBuster = "&t=" + new Date().getTime();
+            let cacheBusterArchivos = "?t=" + new Date().getTime();
             
-            $http.get("datos.json" + cacheBuster).then(function(resDatos) {
+            // Hacemos la petición a la bóveda
+            $http.get(BOVEDA_URL + "?archivo=datos" + cacheBuster).then(function(resDatos) {
                 URL_APPS_SCRIPT = resDatos.data.URL_APPS_SCRIPT;
                 URL_JSON_MATERIAS = resDatos.data.URL_JSON_MATERIAS;
                 URL_JSON_AULAS = resDatos.data.URL_JSON_AULAS;
                 
                 return $q.all([
-                    $http.get(URL_JSON_MATERIAS + cacheBuster),
-                    $http.get(URL_JSON_AULAS + cacheBuster)
+                    $http.get(URL_JSON_MATERIAS + cacheBusterArchivos),
+                    $http.get(URL_JSON_AULAS + cacheBusterArchivos)
                 ]);
             }).then(function(respuestas) {
                 $scope.catalogoMaterias = respuestas[0].data.registros || respuestas[0].data;
